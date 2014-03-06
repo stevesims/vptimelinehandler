@@ -2,7 +2,7 @@
   VPTimelineHandler
   A simple action timeline handling module
 
-  (c) 2011-13, Steve Sims and Vert Pixels Ltd.
+  (c) 2011-14, Steve Sims and Vert Pixels Ltd.
   All Rights Reserved
 
   Redistribution and use in source and binary forms, with or without modification, are permitted provided that the following conditions are met:
@@ -46,7 +46,7 @@ var VPTimelineHandler = function() {
         console.log(args[0], args[1] || '', args[2] || '', args[3] || '', args[4] || '', args[5] || '', args[6] || '', args[7] || '');
       }
     }
-  };
+  }
   
   // engine object creator function definition
   var engine = function VPTimelineHandler(params) {
@@ -80,20 +80,34 @@ var VPTimelineHandler = function() {
     if (newTime < (this.lastTimeCheck - 0.1)) {
       this.reset();
     }
+
+    if (this.ignoreUntil) {
+      if (newTime < this.ignoreUntil) {
+        return;
+      }
+      delete this.ignoreUntil;
+    }
     
-    var i;
+    var i, tl, at, lastActions;
+    var doAll = !this.mostRecentOnly;
     for (i = 0; i < timeline.length; i++) {
-      var tl = timeline[i];
-      var at = this.getAt(tl);
+      tl = timeline[i];
+      at = this.getAt(tl);
       if (at <= newTime) {
         if (at > this.lastTimeCheck) {
           this.currentTime = at;
           this.applyActions(this.checkActions, this);
-          this.applyActions(tl.actions);
+          lastActions = tl.actions;
+          if (doAll) {
+            this.applyActions(lastActions);
+          }
         }
       } else {
         break;
       }
+    }
+    if (!doAll && lastActions) {
+      this.applyActions(lastActions);
     }
     
     this.lastTimeCheck = newTime;
@@ -101,7 +115,7 @@ var VPTimelineHandler = function() {
   
   engine.prototype.getAt = function(tl) {
     var time = tl.time;
-    if (time != undefined) return time;
+    if (time !== undefined) return time;
     var at = tl.at;
     if (VPUtils.isString(at)) {
       time = at.match(kTimeReg);
@@ -109,8 +123,8 @@ var VPTimelineHandler = function() {
         debug("invalid time string %o - ignoring", at);
         return 0;
       }
-      at = new Number(time[1]);
-      at = (at * 60) + (new Number(time[2]));
+      at = Number(time[1]);
+      at = (at * 60) + Number(time[2]);
     }
     tl.time = at;
     return at;
